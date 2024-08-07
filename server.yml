@@ -1,0 +1,111 @@
+# Database Lab API server. This API is used to work with clones
+# (list them, create, delete, see how to connect to a clone).
+server:
+  verificationToken: "TXpRdVkyTk9PWE5CV1RSaVNWRk5NWGRUVjFWUFpXeENWV1JI"
+  port: 2345
+  disableConfigModification: false
+
+# Embedded UI. Controls the application to provide a user interface to DLE API.
+embeddedUI:
+  enabled: true
+  dockerImage: "postgresai/ce-ui:latest"
+  host: "0.0.0.0"
+  port: 2347
+
+global:
+  engine: postgres
+  debug: true
+  database:
+    username: yoshi
+    dbname: yoshidb
+
+poolManager:
+  mountDir: /var/lib/dblab
+  dataSubDir: data
+  clonesMountSubDir: clones
+  socketSubDir: sockets
+  observerSubDir: observer
+  preSnapshotSuffix: "_pre"
+  selectedPool: ""
+
+databaseContainer: &db_container
+  dockerImage: "postgresai/extended-postgres:15-0.4.1"
+  containerConfig:
+    "shm-size": 1gb
+
+databaseConfigs: &db_configs
+  configs:
+    shared_buffers: 1GB
+    shared_preload_libraries: "pg_stat_statements, pg_stat_kcache, auto_explain, logerrors"
+    work_mem: "100MB"
+
+provision:
+  <<: *db_container
+  portPool:
+    from: 6000
+    to: 6099
+  useSudo: false
+  keepUserPasswords: false
+  cloneAccessAddresses: "0.0.0.0"
+
+retrieval:
+  jobs:
+    - physicalRestore
+    - physicalSnapshot
+  spec:
+    physicalRestore:
+      options:
+        <<: *db_container
+        tool: customTool
+        sync:
+          enabled: true
+          healthCheck:
+            interval: 5
+            maxRetries: 200
+          configs:
+            shared_buffers: 2GB
+          envs:
+            PGUSER: "yoshi"
+            PGPASSWORD: "yoshi5432"
+            PGHOST: "localhost"
+            PGPORT: 5432
+        customTool:
+          command: "pg_basebackup -X stream -D /var/lib/dblab/dblab_pool/data"
+          restore_command: ""
+
+    physicalSnapshot:
+      options:
+        skipStartSnapshot: false
+        <<: *db_configs
+        promotion:
+          <<: *db_container
+          enabled: true
+          healthCheck:
+            interval: 5
+            maxRetries: 200
+          configs:
+            shared_buffers: 2GB
+          preprocessingScript: ""
+        scheduler:
+          snapshot:
+            timetable: "0 */6 * * *"
+          retention:
+            timetable: "0 * * * *"
+            limit: 4
+        envs: {}
+
+cloning:
+  accessHost: "0.0.0.0"
+  maxIdleMinutes: 120
+
+diagnostic:
+  logsRetentionDays: 7
+
+# platform:
+#   url: "https://postgres.ai/api/general"
+#   enableTelemetry: true
+#   projectName: "project_name"
+#   orgKey: "org_key"
+#   accessToken: "platform_access_toke"
+#   enablePersonalTokens: true
+

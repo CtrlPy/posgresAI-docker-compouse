@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: yoshi
+      POSTGRES_PASSWORD: yoshi5432
+      POSTGRES_DB: yoshidb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+      
+  dblab_server:
+    image: postgresai/dblab-server:3.5.0
+    container_name: dblab_server
+    privileged: true
+    environment:
+      DOCKER_API_VERSION: 1.39
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/dblab:/var/lib/dblab/:rshared
+      - ~/.dblab/engine/configs:/home/dblab/configs:ro
+      - ~/.dblab/engine/meta:/home/dblab/meta
+      - ~/.dblab/engine/logs:/home/dblab/logs
+      - /sys/kernel/debug:/sys/kernel/debug:rw
+      - /lib/modules:/lib/modules:ro
+      - /proc:/host_proc:ro
+    ports:
+      - "2345:2345"
+      - "2348:2348"
+    restart: always
+
+volumes:
+  postgres_data:
