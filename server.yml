@@ -67,7 +67,7 @@ retrieval:
           envs:
             PGUSER: "yoshi"
             PGPASSWORD: "yoshi5432"
-            PGHOST: "localhost"
+            PGHOST: "postgres"
             PGPORT: 5432
         customTool:
           command: "pg_basebackup -X stream -D /var/lib/dblab/dblab_pool/data"

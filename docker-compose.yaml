@@ -13,6 +13,8 @@ services:
       - ./initdb:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
+    networks:
+      - dblab_network  
       
   dblab_server:
     image: postgresai/dblab-server:3.5.0
@@ -20,6 +22,10 @@ services:
     privileged: true
     environment:
       DOCKER_API_VERSION: 1.39
+      PGUSER: "yoshi"
+      PGPASSWORD: "yoshi5432"
+      PGHOST: "postgres"
+      PGPORT: "5432"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/dblab:/var/lib/dblab/:rshared
@@ -33,6 +39,12 @@ services:
       - "2345:2345"
       - "2348:2348"
     restart: always
+    networks:
+      - dblab_network
 
 volumes:
   postgres_data:
+
+networks:
+  dblab_network:
+    driver: bridge    
